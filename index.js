@@ -1,50 +1,53 @@
+// index.js
 const express = require('express');
+const cors = require('cors');
 const app = express();
-const PORT = 3000;
+const port = process.env.PORT || 3000;
 
-// Endpoint API
+// Enable CORS for all routes
+app.use(cors({ optionsSuccessStatus: 200 })); // some legacy browsers choke on 204
+
+// Serve static files from the 'public' directory
+app.use(express.static('public'));
+
+// Root route to serve the HTML page
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/views/index.html');
+});
+
+// API endpoint for timestamp
 app.get('/api/:date?', (req, res) => {
+  let dateInput = req.params.date;
   let date;
-  const inputDate = req.params.date;
 
-  if (!inputDate) {
-    // Jika tidak ada parameter, gunakan waktu sekarang
+  // If no date is provided, use current date
+  if (dateInput === undefined) {
     date = new Date();
-  } else if (/^\d+$/.test(inputDate)) {
-    // Jika input berupa angka (UNIX timestamp)
-    date = new Date(parseInt(inputDate));
   } else {
-    // Jika input berupa string tanggal
-    date = new Date(inputDate);
+    // Check if the date is a unix timestamp (all digits)
+    if (/^\d+$/.test(dateInput)) {
+      // Convert string to number
+      date = new Date(parseInt(dateInput));
+    } else {
+      // Try to parse as a date string
+      date = new Date(dateInput);
+    }
   }
 
-  // Validasi tanggal
+  // Check if date is valid
   if (isNaN(date.getTime())) {
     return res.json({ error: "Invalid Date" });
   }
 
-  // Response JSON
+  // Return the unix timestamp and UTC string
   res.json({
     unix: date.getTime(),
     utc: date.toUTCString()
   });
 });
 
-// Route untuk halaman utama
-app.get('/', (req, res) => {
-  res.send(`
-    <h1>Timestamp Microservice API</h1>
-    <p>Contoh penggunaan:</p>
-    <ul>
-      <li><a href="/api/2023-10-10">/api/2023-10-10</a></li>
-      <li><a href="/api/1451001600000">/api/1451001600000</a></li>
-      <li><a href="/api/invalid-date">/api/invalid-date</a></li>
-      <li><a href="/api/">/api/</a> (waktu sekarang)</li>
-    </ul>
-  `);
-});
-
-// Jalankan server
-app.listen(PORT, () => {
-  console.log(`Server berjalan di http://localhost:${PORT}`);
+// Start the server
+app.listen(port, () => {
+  console.log(`App is listening on port ${port}`);
+  console.log(`Server running at http://localhost:${port}/`);
 });
